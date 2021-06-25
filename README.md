@@ -1,5 +1,12 @@
-# stocks
+# Stocks Search
 
-## Importing data
-
-`python manage.py import https://www1.nseindia.com/content/historical/EQUITIES/2021/APR/cm28APR2021bhav.csv.zip`
+## Deployment
+### Using Docker
+1. Clone repository.  
+`git clone && cd stocks`  
+2. Run services.   
+`docker-compose up -d`  
+3. Run migrations.   
+`docker exec -it stocks_api python manage.py migrate`   
+4. Run import (by default imports 30 days from nseindia.com).  
+`docker exec -it stocks_api python manage.py import`
