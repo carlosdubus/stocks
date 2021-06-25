@@ -1,3 +1,7 @@
 # Frontend
 
-TODO: instructions
+## Local development 
+`npm run start`
+
+## Build  
+`npm run build`
