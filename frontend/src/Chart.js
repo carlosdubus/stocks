@@ -23,21 +23,31 @@ class Chart extends Component {
             }
         },
     }
-    constructor(props) {
-        super(props);
+
+    componentDidMount() {
         this.fetchData()
-            .then(data => {
-                this.setState({
-                    ...this.state,
-                    series: [{
-                        data
-                    }]
-                });
-            });
+    }
+
+    componentDidUpdate(prevProps) {
+        if (this.props.symbol != prevProps.symbol ||
+            this.props.startDate != prevProps.startDate ||
+            this.props.endDate != prevProps.endDate) {
+            this.fetchData();
+        }
     }
 
     fetchData() {
-        return fetch(`/api/stocks?symbol=ASAL`)
+        if (!this.props.symbol || !this.props.startDate || !this.props.endDate) {
+            this.setState({
+                loading: false,
+                hasData: false
+            });
+            return;
+        }
+        this.setState({
+            loading: true
+        });
+        return fetch(`/api/stocks?symbol=${this.props.symbol}&from=${this.props.startDate}&to=${this.props.endDate}`)
             .then((resp) => resp.json())
             .then(stocks => {
                 return stocks.map(row => ({
@@ -49,6 +59,21 @@ class Chart extends Component {
                         parseFloat(row.price_close)
                     ]
                 }));
+            }).then(data => {
+                this.setState({
+                    loading: false,
+                    hasData: data.length > 0,
+                    series: [{
+                        data
+                    }],
+                    options: {
+                        ...this.state.options,
+                        title: {
+                            text: this.props.symbol,
+                            align: 'left'
+                        },
+                    }
+                });
             });
     }
 
@@ -63,7 +88,7 @@ class Chart extends Component {
         if (this.state.hasData) {
             return <ApexChart options={this.state.options} series={this.state.series} type="candlestick" height={350} />;
         }
-        return <div></div>;
+        return <div style={{ textAlign: "center" }}>No data to display.</div>;
     }
 }
 export default Chart;

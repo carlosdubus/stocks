@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 
 const SEARCH_URI = '/api/stocks/symbols';
 
-function SymbolInput() {
+function SymbolInput({ onChange }) {
     const [isLoading, setIsLoading] = useState(false);
     const [options, setOptions] = useState([]);
 
@@ -24,6 +24,7 @@ function SymbolInput() {
     };
     return (
         <AsyncTypeahead
+            onChange={onChange}
             id="async-example"
             isLoading={isLoading}
             labelKey="login"
