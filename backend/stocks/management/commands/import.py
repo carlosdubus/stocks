@@ -3,11 +3,22 @@ from stocks.models import Stocks
 import requests, zipfile, io, csv
 from dateutil.parser import parse
 from decimal import Decimal
-
+from datetime import datetime, timedelta
+import time
 
 HEADERS = {
     "referer": "https://www1.nseindia.com/products/content/equities/equities/archieve_eq.htm"
 }
+
+def build_url(date):
+    month = date.strftime("%b").upper()
+    return "https://www1.nseindia.com/content/historical/EQUITIES/%s/%s/cm%s%s%sbhav.csv.zip" % (
+        date.year,
+        month,
+        '%02d' % date.day,
+        month,
+        date.year
+    )
 
 def row_to_model(row):
     # 0 SYMBOL	1 SERIES	2 OPEN	3 HIGH	4 LOW	5 CLOSE	6 LAST	7 PREVCLOSE	8 TOTTRDQTY	9 TOTTRDVAL	10 TIMESTAMP	11 TOTALTRADES	12 ISIN
@@ -53,18 +64,35 @@ def upsert_stocks(stocks):
     Stocks.objects.filter(symbol=stocks.symbol, date=stocks.date).delete()
     return stocks.save()
 
+def import_date(date):
+    # skip weekends, no data for weekends
+    if date.weekday() >= 5:
+        return
+    try:
+        url = build_url(date)
+        print(url)
+        for row, stocks in parse_url(url):
+            upsert_stocks(stocks)
+    except Exception as e:
+        print(e)
+
 class Command(BaseCommand):
     help = """Imports stocks from https://www1.nseindia.com
     Example:
-      python manage.py import https://www1.nseindia.com/content/historical/EQUITIES/2021/APR/cm28APR2021bhav.csv.zip
+      python manage.py import --from=2020-01-01
     """
 
     def add_arguments(self, parser):
-        parser.add_argument('url', nargs='+', type=str)
+        today = datetime.now()
+        last_30 = datetime.now() - timedelta(31)
+        parser.add_argument('--from', nargs='?', help='From date. (2021-01-01)', default=last_30.strftime('%Y-%m-%d'))
+        parser.add_argument('--to', nargs='?', help='To date.', default=today.strftime('%Y-%m-%d'))
 
     def handle(self, *args, **options):
-        for url in options['url']:
-            for row, stocks in parse_url(url):
-                print(row)
-                print(stocks)
-                upsert_stocks(stocks)
+        date_from = parse(options["from"])
+        date_to = parse(options["to"])
+        cur_date = date_from
+        while cur_date < date_to:
+            import_date(cur_date)
+            cur_date += timedelta(1)
+            time.sleep(5) # do not get blocked
