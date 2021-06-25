@@ -1,0 +1,13 @@
+version: '2'
+
+services:
+  api:
+    container_name: stocks_api
+    build: backend
+  web:
+    depends_on:
+      - api
+    container_name: stocks_web
+    build: frontend
+    ports:
+      - "8000:80"
